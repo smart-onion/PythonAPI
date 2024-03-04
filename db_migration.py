@@ -4,47 +4,55 @@ import os
 import psycopg2
 import pyodbc
 
-dotenv.load_dotenv()
 
-MDB = r'D:\Mano\pythonAPI\API\DsiBilling.mdb'
-DRV = '{Microsoft Access Driver (*.mdb)}'
-PWD = 'pw'
+def migration():
+    """
+    Migrate data from a Microsoft Access database to a PostgreSQL database.
 
-conn_str = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=' + MDB
-db_params = {
-    'host': os.environ.get('DB_HOST'),
-    'database': os.environ.get('DB_NAME'),
-    'user': os.environ.get('DB_USER'),
-    'password': os.environ.get('DB_PASSWORD'),
-    'port': os.environ.get('DB_PORT')
-}
+    This function connects to both the Microsoft Access and PostgreSQL databases,
+    retrieves data from the Microsoft Access database, inserts the data into the
+    PostgreSQL database, and closes the connections afterward.
+    """
+    dotenv.load_dotenv()
 
-# Establish a connection
-conn = pyodbc.connect(conn_str)
-pg_conn = psycopg2.connect(**db_params)
+    MDB = r'D:\Mano\pythonAPI\API\DsiBilling.mdb'
+    DRV = '{Microsoft Access Driver (*.mdb)}'
+    PWD = 'pw'
 
-# Create a cursor from the connection
-cursor = conn.cursor()
-pg_cursor = pg_conn.cursor()
+    conn_str = r'DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};DBQ=' + MDB
+    db_params = {
+        'host': os.environ.get('DB_HOST'),
+        'database': os.environ.get('DB_NAME'),
+        'user': os.environ.get('DB_USER'),
+        'password': os.environ.get('DB_PASSWORD'),
+        'port': os.environ.get('DB_PORT')
+    }
 
-# Example query
-query = "SELECT USER_NAME, IDNUM, FIRST_NAME, LAST_NAME FROM dbul"
-pg_query = "INSERT INTO guests (guest, folio_id, f_name, l_name) VALUES (%s, %s, %s, %s)"
+    # Establish a connection
+    conn = pyodbc.connect(conn_str)
+    pg_conn = psycopg2.connect(**db_params)
 
-# Execute the query
-cursor.execute(query)
-# Fetch all the rows
-rows = cursor.fetchall()
+    # Create a cursor from the connection
+    cursor = conn.cursor()
+    pg_cursor = pg_conn.cursor()
 
-# Print the results
-for row in rows:
+    # Example query
+    query = "SELECT USER_NAME, IDNUM, FIRST_NAME, LAST_NAME FROM dbul"
+    pg_query = "INSERT INTO guests (guest, folio_id, f_name, l_name) VALUES (%s, %s, %s, %s)"
 
-    pg_cursor.execute(pg_query, (row[0], row[1], row[2], row[3]))
+    # Execute the query
+    cursor.execute(query)
+    # Fetch all the rows
+    rows = cursor.fetchall()
 
-pg_conn.commit()
+    # Print the results
+    for row in rows:
+        pg_cursor.execute(pg_query, (row[0], row[1], row[2], row[3]))
 
-# Close the cursor and connection
-cursor.close()
-conn.close()
-pg_cursor.close()
-pg_conn.close()
+    pg_conn.commit()
+
+    # Close the cursor and connection
+    cursor.close()
+    conn.close()
+    pg_cursor.close()
+    pg_conn.close()
