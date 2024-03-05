@@ -74,7 +74,7 @@ def get_folio_id(pg_cursor, username: str):
 
 
 @connect_db
-def insert_pass_logs(pg_cursor, user: str, username: str, hostname: str):
+def insert_pass_logs(pg_cursor, user: str, username: str, hostname: str, action: str):
     """
     Inserts password change logs into the database.
 
@@ -90,14 +90,14 @@ def insert_pass_logs(pg_cursor, user: str, username: str, hostname: str):
     assert type(user) is str
     assert type(username) is str
     assert type(hostname) is str
+    assert type(action) is str
 
     id_query = f"select id from guests where guest='{username}'"
     pg_cursor.execute(id_query)
     id = pg_cursor.fetchall()
     if id:
-        set_query = f"INSERT INTO change_pass_logs (username, guest_id, hostname) VALUES ('{user}', {id[0][0]}, '{hostname}')"
+        set_query = f"INSERT INTO change_pass_logs (username, guest_id, hostname, action) VALUES ('{user}', {id[0][0]},'{hostname}', '{action}')"
         pg_cursor.execute(set_query)
-        print(":db")
         return 'DONE'
     else:
         return 'NOT_FOUND'
@@ -114,7 +114,7 @@ def get_pass_logs(pg_cursor):
     Returns:
         list: A list of tuples containing password change logs.
     """
-    get_query = ("SELECT username, time, guest, folio_id, f_name, l_name FROM change_pass_logs JOIN guests ON "
+    get_query = ("SELECT username, time, guest, folio_id, f_name, l_name, action FROM change_pass_logs JOIN guests ON "
                  "guests.id=change_pass_logs.guest_id ORDER BY time DESC LIMIT 10")
     pg_cursor.execute(get_query)
     result = pg_cursor.fetchall()

@@ -1,3 +1,4 @@
+test.py
 Dockerfile
 DsiBilling.mdb
 .dockerignore
@@ -5,7 +6,7 @@ DsiBilling.mdb
 __pycache__/
 *.py[cod]
 *$py.class
-
+*.html
 # C extensions
 *.so
 

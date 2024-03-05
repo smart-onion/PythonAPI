@@ -13,6 +13,31 @@ app = Flask(__name__)
 drivers = {}  # {hostname: driver_instance}
 
 
+def check_authenticated(func):
+    """
+    Decorator function to check if the user is authenticated.
+
+    Args:
+        func: The function to be wrapped.
+
+    Returns:
+        wrapper: The wrapper function.
+    """
+    async def wrapper(*args, **kwargs):
+        authenticated = is_authenticated(request.json['user'], request.json['password'])
+        if authenticated:
+            result = await func()
+            if result != "NOT_FOUND":
+                insert_pass_logs(user=request.json['user'], username=request.json['username'],
+                                 hostname=request.json['hostname'], action=request.json["action"])
+            return result
+        else:
+            return jsonify("NOT_AUTHENTICATED", 404)
+
+    wrapper.__name__ = func.__name__
+    return wrapper
+
+
 @app.route("/", methods=['POST'])
 def start_session():
     """
@@ -40,23 +65,45 @@ def delete_driver():
 
 
 @app.route("/change-password", methods=['POST'])
-def change_password():
+@check_authenticated
+async def change_password():
     """
     Endpoint to change the password for a user.
 
-    Expects JSON payload with user authentication credentials, hostname, and username.
+    Expects a JSON payload with the hostname, username, and password.
     """
-    authenticated = is_authenticated(request.json['user'], request.json['password'])
-    if authenticated:
-        hostname = request.json['hostname']
-        folio_id = get_folio_id(request.json['username'])
-        result = drivers[hostname].change_password(folio_id=folio_id, username=request.json["username"])
-        if result == "PASSWORD_CHANGED":
-            insert_pass_logs(user=request.json['user'], username=request.json['username'],
-                             hostname=request.json['hostname'])
-        return result
-    else:
-        return jsonify("NOT_AUTHENTICATED", 404)
+    hostname = request.json['hostname']
+    folio_id = get_folio_id(request.json['username'])
+    result = drivers[hostname].change_password(folio_id=folio_id, username=request.json["username"])
+    return result
+
+
+@app.route("/error-1154", methods=["POST"])
+@check_authenticated
+async def error_1154():
+    """
+    Endpoint to fix error 1154 for a user.
+
+    Expects a JSON payload with the hostname, username, and password.
+    """
+    hostname = request.json['hostname']
+    folio_id = get_folio_id(request.json['username'])
+    result = drivers[hostname].fix_error_1154(folio_id=folio_id, username=request.json["username"])
+    return result
+
+
+@app.route("/get-details", methods=["POST"])
+@check_authenticated
+async def get_details():
+    """
+    Endpoint to get details of a user.
+
+    Expects a JSON payload with the hostname, username, and password.
+    """
+    hostname = request.json['hostname']
+    folio_id = get_folio_id(request.json['username'])
+    result = drivers[hostname].get_details(folio_id=folio_id, username=request.json["username"])
+    return result
 
 
 @app.route("/call-support", methods=["POST"])
@@ -66,7 +113,8 @@ def call_support():
 
     Expects JSON payload with hostname, username, and message for support.
     """
-    send_message(f"Hostname: {request.json['hostname']}\nUser: {request.json['username']}\nMessage:\n{request.json['message']}")
+    send_message(
+        f"Hostname: {request.json['hostname']}\nUser: {request.json['username']}\nMessage:\n{request.json['message']}")
     return "200"
 
 
